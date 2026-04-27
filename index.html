@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Random</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .word-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            perspective: 600px;
+        }
+
+        .word-display {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: 0.3rem;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(100, 200, 255, 0.6);
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .word-display.animate {
+            animation: flipIn 0.4s ease;
+        }
+
+        @keyframes flipIn {
+            0%   { transform: rotateX(90deg); opacity: 0; }
+            100% { transform: rotateX(0deg);  opacity: 1; }
+        }
+
+        .letter-count-badge {
+            font-size: 1rem;
+            color: #a0cfff;
+        }
+
+        .btn-random {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border: none;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            padding: 16px 48px;
+            color: #000;
+            letter-spacing: 0.1rem;
+            box-shadow: 0 8px 32px rgba(79, 172, 254, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn-random:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+        }
+
+        .filter-btn {
+            border-radius: 50px;
+            font-size: 0.9rem;
+            padding: 6px 18px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #aaa;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.active {
+            background: rgba(79, 172, 254, 0.2);
+            border-color: #4facfe;
+            color: #4facfe;
+        }
+
+        .meaning-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #ccc;
+            font-size: 1rem;
+            min-height: 48px;
+        }
+
+        .title-text {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 0.05rem;
+        }
+
+        .subtitle-text {
+            color: #7aa5cc;
+            font-size: 0.85rem;
+        }
+
+        .counter-text {
+            color: #4facfe;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center py-5">
+
+<div class="container" style="max-width: 420px;">
+
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <div class="title-text">🎲 Word Random</div>
+        <div class="subtitle-text">สุ่มคำศัพท์ภาษาอังกฤษ 3–5 ตัวอักษร</div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="word-card p-4 mb-4">
+
+        <!-- Filter -->
+        <div class="d-flex justify-content-center gap-2 mb-4">
+            <button class="filter-btn active" data-len="0">ทั้งหมด</button>
+            <button class="filter-btn" data-len="3">3</button>
+            <button class="filter-btn" data-len="4">4</button>
+            <button class="filter-btn" data-len="5">5</button>
+        </div>
+
+        <!-- Word Display -->
+        <div class="word-display mb-2" id="wordDisplay">
+            ?
+        </div>
+
+        <div class="text-center letter-count-badge mb-3" id="letterCount">—</div>
+
+        <!-- Meaning -->
+        <div class="meaning-box px-3 py-2 text-center mb-2" id="meaningBox">
+            กด Random เพื่อเริ่ม
+        </div>
+
+        <div class="text-center counter-text mb-1" id="counterText"></div>
+        <div class="px-2">
+            <div class="progress" style="height:4px;background:rgba(255,255,255,0.08);border-radius:4px;">
+                <div id="progressBar" class="progress-bar" role="progressbar"
+                     style="width:0%;background:linear-gradient(90deg,#4facfe,#00f2fe);border-radius:4px;transition:width 0.3s ease;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Random Button -->
+    <div class="text-center mb-3">
+        <button class="btn btn-random" id="btnRandom">
+            🔀 RANDOM
+        </button>
+    </div>
+
+    <!-- History -->
+    <div class="text-center subtitle-text mb-2">คำที่สุ่มล่าสุด</div>
+    <div id="historyList" class="d-flex flex-wrap justify-content-center gap-2"></div>
+
+</div>
+
+<script>
+const words = [
+    // 3 letters
+    { word: "CAT",  meaning: "แมว" },
+    { word: "DOG",  meaning: "สุนัข" },
+    { word: "SUN",  meaning: "ดวงอาทิตย์" },
+    { word: "RUN",  meaning: "วิ่ง" },
+    { word: "FLY",  meaning: "บิน / แมลงวัน" },
+    { word: "EAT",  meaning: "กิน" },
+    { word: "BIG",  meaning: "ใหญ่" },
+    { word: "HOT",  meaning: "ร้อน" },
+    { word: "CRY",  meaning: "ร้องไห้" },
+    { word: "SKY",  meaning: "ท้องฟ้า" },
+    { word: "SEA",  meaning: "ทะเล" },
+    { word: "MAP",  meaning: "แผนที่" },
+    { word: "JAR",  meaning: "โถ / ขวดโหล" },
+    { word: "PEN",  meaning: "ปากกา" },
+    { word: "BUS",  meaning: "รถบัส" },
+    { word: "HIT",  meaning: "ตี / ชน" },
+    { word: "MIX",  meaning: "ผสม" },
+    { word: "ZIP",  meaning: "ซิป / รูดซิป" },
+    { word: "WEB",  meaning: "เว็บ / ใยแมงมุม" },
+    { word: "LOG",  meaning: "ท่อนซุง / บันทึก" },
+    { word: "FOX",  meaning: "จิ้งจอก" },
+    { word: "OWL",  meaning: "นกฮูก" },
+    { word: "GEM",  meaning: "อัญมณี" },
+    { word: "ICE",  meaning: "น้ำแข็ง" },
+    { word: "JOY",  meaning: "ความสุข" },
+    { word: "KEY",  meaning: "กุญแจ" },
+    { word: "LAW",  meaning: "กฎหมาย" },
+    { word: "MUD",  meaning: "โคลน" },
+    { word: "NUT",  meaning: "ถั่ว / น็อต" },
+    { word: "OAK",  meaning: "ต้นโอ๊ก" },
+
+    // 4 letters
+    { word: "BALL",  meaning: "ลูกบอล" },
+    { word: "BOOK",  meaning: "หนังสือ" },
+    { word: "CAKE",  meaning: "เค้ก" },
+    { word: "DARK",  meaning: "มืด" },
+    { word: "FARM",  meaning: "ฟาร์ม" },
+    { word: "FISH",  meaning: "ปลา" },
+    { word: "GAME",  meaning: "เกม" },
+    { word: "HAIR",  meaning: "ผม" },
+    { word: "HILL",  meaning: "เนินเขา" },
+    { word: "JUMP",  meaning: "กระโดด" },
+    { word: "KING",  meaning: "กษัตริย์" },
+    { word: "LAKE",  meaning: "ทะเลสาบ" },
+    { word: "LEAF",  meaning: "ใบไม้" },
+    { word: "MILK",  meaning: "นม" },
+    { word: "MOON",  meaning: "ดวงจันทร์" },
+    { word: "NEST",  meaning: "รัง" },
+    { word: "OPEN",  meaning: "เปิด" },
+    { word: "PLAY",  meaning: "เล่น" },
+    { word: "RAIN",  meaning: "ฝน" },
+    { word: "RICE",  meaning: "ข้าว" },
+    { word: "ROAD",  meaning: "ถนน" },
+    { word: "ROCK",  meaning: "หิน / ร็อก" },
+    { word: "ROSE",  meaning: "ดอกกุหลาบ" },
+    { word: "SALT",  meaning: "เกลือ" },
+    { word: "SAND",  meaning: "ทราย" },
+    { word: "SHIP",  meaning: "เรือ" },
+    { word: "SING",  meaning: "ร้องเพลง" },
+    { word: "SNOW",  meaning: "หิมะ" },
+    { word: "STAR",  meaning: "ดาว" },
+    { word: "SWIM",  meaning: "ว่ายน้ำ" },
+    { word: "TENT",  meaning: "เต็นท์" },
+    { word: "TREE",  meaning: "ต้นไม้" },
+    { word: "WALK",  meaning: "เดิน" },
+    { word: "WIND",  meaning: "ลม" },
+    { word: "WOLF",  meaning: "หมาป่า" },
+    { word: "WORD",  meaning: "คำ" },
+    { word: "WORM",  meaning: "หนอน / ไส้เดือน" },
+    { word: "YEAR",  meaning: "ปี" },
+    { word: "ZONE",  meaning: "เขต / โซน" },
+    { word: "BORN",  meaning: "เกิด" },
+
+    // 5 letters
+    { word: "APPLE",  meaning: "แอปเปิ้ล" },
+    { word: "BEACH",  meaning: "ชายหาด" },
+    { word: "BREAD",  meaning: "ขนมปัง" },
+    { word: "BRICK",  meaning: "อิฐ" },
+    { word: "BRING",  meaning: "นำมา" },
+    { word: "BROWN",  meaning: "สีน้ำตาล" },
+    { word: "CHAIR",  meaning: "เก้าอี้" },
+    { word: "CHEAP",  meaning: "ราคาถูก" },
+    { word: "CHESS",  meaning: "หมากรุก" },
+    { word: "CHILD",  meaning: "เด็ก" },
+    { word: "CLEAN",  meaning: "สะอาด" },
+    { word: "CLIMB",  meaning: "ปีน" },
+    { word: "CLOCK",  meaning: "นาฬิกา" },
+    { word: "CLOUD",  meaning: "เมฆ" },
+    { word: "CORAL",  meaning: "ปะการัง" },
+    { word: "CRANE",  meaning: "นกกระเรียน / เครน" },
+    { word: "CREAM",  meaning: "ครีม" },
+    { word: "CROSS",  meaning: "ข้าม / กากบาท" },
+    { word: "DANCE",  meaning: "เต้นรำ" },
+    { word: "DREAM",  meaning: "ความฝัน" },
+    { word: "DRINK",  meaning: "ดื่ม" },
+    { word: "DRIVE",  meaning: "ขับรถ" },
+    { word: "EARLY",  meaning: "แต่เช้า / เร็ว" },
+    { word: "EARTH",  meaning: "โลก / ดิน" },
+    { word: "FEAST",  meaning: "งานเลี้ยง" },
+    { word: "FIELD",  meaning: "ทุ่งนา / สนาม" },
+    { word: "FLAME",  meaning: "เปลวไฟ" },
+    { word: "FLASH",  meaning: "แสงวาบ" },
+    { word: "FLOAT",  meaning: "ลอย" },
+    { word: "FLOOR",  meaning: "พื้น / ชั้น" },
+    { word: "FLOUR",  meaning: "แป้ง" },
+    { word: "FLUTE",  meaning: "ขลุ่ย" },
+    { word: "FOUND",  meaning: "พบ / ก่อตั้ง" },
+    { word: "FRESH",  meaning: "สด / สดชื่น" },
+    { word: "FRUIT",  meaning: "ผลไม้" },
+    { word: "GHOST",  meaning: "ผี" },
+    { word: "GIANT",  meaning: "ยักษ์" },
+    { word: "GLASS",  meaning: "แก้ว" },
+    { word: "GLOBE",  meaning: "ลูกโลก" },
+    { word: "GLOOM",  meaning: "ความมืดหม่น" },
+    { word: "GLOVE",  meaning: "ถุงมือ" },
+    { word: "GRACE",  meaning: "ความสง่างาม" },
+    { word: "GRADE",  meaning: "เกรด" },
+    { word: "GRAIN",  meaning: "เมล็ดข้าว" },
+    { word: "GRAND",  meaning: "ยิ่งใหญ่" },
+    { word: "GRAPE",  meaning: "องุ่น" },
+    { word: "GRASS",  meaning: "หญ้า" },
+    { word: "GRAVE",  meaning: "หลุมฝังศพ" },
+    { word: "GREAT",  meaning: "ยอดเยี่ยม" },
+    { word: "GREEN",  meaning: "สีเขียว" },
+    { word: "GRIEF",  meaning: "ความเศร้าโศก" },
+    { word: "GRILL",  meaning: "ย่าง" },
+    { word: "GRIND",  meaning: "บด" },
+    { word: "GROAN",  meaning: "ครวญคราง" },
+    { word: "GROVE",  meaning: "ดงไม้" },
+    { word: "GUARD",  meaning: "ยาม / ปกป้อง" },
+    { word: "GUESS",  meaning: "เดา" },
+    { word: "GUEST",  meaning: "แขก" },
+    { word: "GUIDE",  meaning: "ไกด์ / นำทาง" },
+    { word: "HAPPY",  meaning: "มีความสุข" },
+    { word: "HEART",  meaning: "หัวใจ" },
+    { word: "HEAVY",  meaning: "หนัก" },
+    { word: "HORSE",  meaning: "ม้า" },
+    { word: "HOTEL",  meaning: "โรงแรม" },
+    { word: "HOUSE",  meaning: "บ้าน" },
+    { word: "HUMAN",  meaning: "มนุษย์" },
+    { word: "JUDGE",  meaning: "ผู้พิพากษา" },
+    { word: "JUICE",  meaning: "น้ำผลไม้" },
+    { word: "KNIFE",  meaning: "มีด" },
+    { word: "KNOCK",  meaning: "เคาะ" },
+    { word: "LARGE",  meaning: "ใหญ่" },
+    { word: "LASER",  meaning: "เลเซอร์" },
+    { word: "LAUGH",  meaning: "หัวเราะ" },
+    { word: "LAYER",  meaning: "ชั้น" },
+    { word: "LEARN",  meaning: "เรียนรู้" },
+    { word: "LEMON",  meaning: "มะนาว" },
+    { word: "LIGHT",  meaning: "แสง / เบา" },
+    { word: "LIMIT",  meaning: "ขีดจำกัด" },
+    { word: "LINEN",  meaning: "ผ้าลินิน" },
+    { word: "LOGIC",  meaning: "ตรรกะ" },
+    { word: "LUNCH",  meaning: "มื้อกลางวัน" },
+    { word: "MAGIC",  meaning: "เวทมนตร์" },
+    { word: "MAJOR",  meaning: "สำคัญ / พันตรี" },
+    { word: "MAPLE",  meaning: "ต้นเมเปิล" },
+    { word: "MARCH",  meaning: "มีนาคม / เดินแถว" },
+    { word: "METAL",  meaning: "โลหะ" },
+    { word: "MONEY",  meaning: "เงิน" },
+    { word: "MONTH",  meaning: "เดือน" },
+    { word: "MOUSE",  meaning: "หนู / เมาส์" },
+    { word: "MOUTH",  meaning: "ปาก" },
+    { word: "MUSIC",  meaning: "ดนตรี" },
+    { word: "NIGHT",  meaning: "กลางคืน" },
+    { word: "NORTH",  meaning: "ทิศเหนือ" },
+    { word: "NURSE",  meaning: "พยาบาล" },
+    { word: "OCEAN",  meaning: "มหาสมุทร" },
+    { word: "OLIVE",  meaning: "มะกอก" },
+    { word: "ONION",  meaning: "หัวหอม" },
+    { word: "ORBIT",  meaning: "วงโคจร" },
+    { word: "ORDER",  meaning: "สั่ง / ลำดับ" },
+    { word: "OTTER",  meaning: "นาก" },
+    { word: "OUTER",  meaning: "ด้านนอก" },
+    { word: "PANDA",  meaning: "แพนด้า" },
+    { word: "PAPER",  meaning: "กระดาษ" },
+    { word: "PASTA",  meaning: "พาสต้า" },
+    { word: "PATCH",  meaning: "ปะ / แผ่น" },
+    { word: "PEACE",  meaning: "สันติภาพ" },
+    { word: "PEARL",  meaning: "ไข่มุก" },
+    { word: "PEDAL",  meaning: "แป้นเหยียบ" },
+    { word: "PHOTO",  meaning: "ภาพถ่าย" },
+    { word: "PIANO",  meaning: "เปียโน" },
+    { word: "PILOT",  meaning: "นักบิน" },
+    { word: "PIZZA",  meaning: "พิซซ่า" },
+    { word: "PLACE",  meaning: "สถานที่" },
+    { word: "PLAIN",  meaning: "เรียบ / ทุ่งราบ" },
+    { word: "PLANE",  meaning: "เครื่องบิน" },
+    { word: "PLANT",  meaning: "พืช / ปลูก" },
+    { word: "PLATE",  meaning: "จาน" },
+    { word: "PLAZA",  meaning: "ลาน / ห้างสรรพสินค้า" },
+    { word: "PLUCK",  meaning: "เด็ด / ดีด" },
+    { word: "PLUMB",  meaning: "ดิ่ง" },
+    { word: "PLUME",  meaning: "ขนนก / ควัน" },
+    { word: "PLUMP",  meaning: "อ้วนกลม" },
+    { word: "PLUNK",  meaning: "ดีดสาย" },
+    { word: "POINT",  meaning: "จุด / ชี้" },
+    { word: "POLAR",  meaning: "ขั้วโลก" },
+    { word: "POPPY",  meaning: "ดอกป็อปปี้" },
+    { word: "POUND",  meaning: "ปอนด์ / ทุบ" },
+    { word: "POWER",  meaning: "พลัง" },
+    { word: "PRESS",  meaning: "กด / สื่อ" },
+    { word: "PRICE",  meaning: "ราคา" },
+    { word: "PRIDE",  meaning: "ความภาคภูมิใจ" },
+    { word: "PRIME",  meaning: "ชั้นหนึ่ง" },
+    { word: "PRINT",  meaning: "พิมพ์" },
+    { word: "PRIZE",  meaning: "รางวัล" },
+    { word: "PROBE",  meaning: "สอบสวน / ยานสำรวจ" },
+    { word: "PROOF",  meaning: "หลักฐาน" },
+    { word: "PROUD",  meaning: "ภูมิใจ" },
+    { word: "PROVE",  meaning: "พิสูจน์" },
+    { word: "PRUNE",  meaning: "พลัม / ตัดแต่ง" },
+    { word: "PUPPY",  meaning: "ลูกสุนัข" },
+    { word: "QUEEN",  meaning: "ราชินี" },
+    { word: "QUEST",  meaning: "การแสวงหา" },
+    { word: "QUEUE",  meaning: "แถว / คิว" },
+    { word: "QUICK",  meaning: "เร็ว" },
+    { word: "QUIET",  meaning: "เงียบ" },
+    { word: "QUOTA",  meaning: "โควตา" },
+    { word: "QUOTE",  meaning: "อ้างอิง" },
+    { word: "RADAR",  meaning: "เรดาร์" },
+    { word: "RADIO",  meaning: "วิทยุ" },
+    { word: "RAISE",  meaning: "ยก / เพิ่ม" },
+    { word: "RALLY",  meaning: "ชุมนุม" },
+    { word: "RANGE",  meaning: "ช่วง / ทุ่ง" },
+    { word: "RAPID",  meaning: "รวดเร็ว" },
+    { word: "RATIO",  meaning: "อัตราส่วน" },
+    { word: "REACH",  meaning: "เอื้อม / ถึง" },
+    { word: "READY",  meaning: "พร้อม" },
+    { word: "REALM",  meaning: "อาณาจักร" },
+    { word: "REBEL",  meaning: "กบฏ" },
+    { word: "REFER",  meaning: "อ้างอิง" },
+    { word: "RELAX",  meaning: "ผ่อนคลาย" },
+    { word: "REPAY",  meaning: "คืน / ตอบแทน" },
+    { word: "RIDER",  meaning: "ผู้ขี่" },
+    { word: "RIDGE",  meaning: "สันเขา" },
+    { word: "RIGHT",  meaning: "ขวา / ถูกต้อง" },
+    { word: "RISKY",  meaning: "เสี่ยง" },
+    { word: "RIVET",  meaning: "หมุดย้ำ" },
+    { word: "ROBIN",  meaning: "นกโรบิน" },
+    { word: "ROBOT",  meaning: "หุ่นยนต์" },
+    { word: "ROCKY",  meaning: "เป็นหิน" },
+    { word: "ROUGE",  meaning: "สีแดง" },
+    { word: "ROUGH",  meaning: "ขรุขระ" },
+    { word: "ROUND",  meaning: "กลม / รอบ" },
+    { word: "ROUTE",  meaning: "เส้นทาง" },
+    { word: "RULER",  meaning: "ไม้บรรทัด / ผู้ปกครอง" },
+    { word: "RURAL",  meaning: "ชนบท" },
+    { word: "SADLY",  meaning: "อย่างเศร้า" },
+    { word: "SAINT",  meaning: "นักบุญ" },
+    { word: "SALAD",  meaning: "สลัด" },
+    { word: "SAUCE",  meaning: "ซอส" },
+    { word: "SCALE",  meaning: "ระดับ / เกล็ดปลา" },
+    { word: "SCARE",  meaning: "ทำให้ตกใจ" },
+    { word: "SCENE",  meaning: "ฉาก" },
+    { word: "SCENT",  meaning: "กลิ่น" },
+    { word: "SCORE",  meaning: "คะแนน" },
+    { word: "SENSE",  meaning: "ความรู้สึก" },
+    { word: "SERVO",  meaning: "มอเตอร์ขนาดเล็ก" },
+    { word: "SEVEN",  meaning: "เจ็ด" },
+    { word: "SHADE",  meaning: "เงา / ร่ม" },
+    { word: "SHAKE",  meaning: "เขย่า" },
+    { word: "SHAME",  meaning: "ความอับอาย" },
+    { word: "SHAPE",  meaning: "รูปร่าง" },
+    { word: "SHARE",  meaning: "แบ่งปัน" },
+    { word: "SHARK",  meaning: "ฉลาม" },
+    { word: "SHARP",  meaning: "คม" },
+    { word: "SHELF",  meaning: "ชั้นวาง" },
+    { word: "SHELL",  meaning: "เปลือก" },
+    { word: "SHIFT",  meaning: "เปลี่ยน / กะ" },
+    { word: "SHINE",  meaning: "ส่องแสง" },
+    { word: "SHIRT",  meaning: "เสื้อเชิ้ต" },
+    { word: "SHOCK",  meaning: "ช็อก" },
+    { word: "SHORE",  meaning: "ชายฝั่ง" },
+    { word: "SHORT",  meaning: "สั้น / เตี้ย" },
+    { word: "SHOUT",  meaning: "ตะโกน" },
+    { word: "SIGHT",  meaning: "สายตา / ทัศนีย์ภาพ" },
+    { word: "SKILL",  meaning: "ทักษะ" },
+    { word: "SKULL",  meaning: "กะโหลก" },
+    { word: "SKUNK",  meaning: "สกั๊งค์" },
+    { word: "SLADE",  meaning: "หุบเขาเล็ก" },
+    { word: "SLANG",  meaning: "ภาษาสแลง" },
+    { word: "SLAP",   meaning: "ตบ / ตี" },
+    { word: "SLAVE",  meaning: "ทาส" },
+    { word: "SLEEP",  meaning: "นอนหลับ" },
+    { word: "SLICE",  meaning: "ชิ้น / หั่น" },
+    { word: "SLIDE",  meaning: "สไลด์ / ลื่น" },
+    { word: "SLIM",   meaning: "ผอมเพรียว" },
+    { word: "SLIME",  meaning: "เมือก" },
+    { word: "SLOPE",  meaning: "ความลาดชัน" },
+    { word: "SLOTH",  meaning: "ตัวเกียจ" },
+    { word: "SMALL",  meaning: "เล็ก" },
+    { word: "SMART",  meaning: "ฉลาด" },
+    { word: "SMELL",  meaning: "กลิ่น / ดมกลิ่น" },
+    { word: "SMILE",  meaning: "ยิ้ม" },
+    { word: "SMOKE",  meaning: "ควัน" },
+    { word: "SNAKE",  meaning: "งู" },
+    { word: "SOLAR",  meaning: "พลังงานแสงอาทิตย์" },
+    { word: "SOLID",  meaning: "ของแข็ง / มั่นคง" },
+    { word: "SOUND",  meaning: "เสียง" },
+    { word: "SOUTH",  meaning: "ทิศใต้" },
+    { word: "SPACE",  meaning: "อวกาศ / ช่องว่าง" },
+    { word: "SPARE",  meaning: "สำรอง / ประหยัด" },
+    { word: "SPARK",  meaning: "ประกายไฟ" },
+    { word: "SPEAK",  meaning: "พูด" },
+    { word: "SPEED",  meaning: "ความเร็ว" },
+    { word: "SPELL",  meaning: "สะกดคำ / มนต์" },
+    { word: "SPEND",  meaning: "ใช้จ่าย" },
+    { word: "SPICE",  meaning: "เครื่องเทศ" },
+    { word: "SPIKE",  meaning: "หนาม / พุ่งสูง" },
+    { word: "SPINE",  meaning: "กระดูกสันหลัง" },
+    { word: "SPLIT",  meaning: "แยก" },
+    { word: "SPOKE",  meaning: "พูด (อดีต)" },
+    { word: "SPOON",  meaning: "ช้อน" },
+    { word: "SPORT",  meaning: "กีฬา" },
+    { word: "SPRAY",  meaning: "ฉีดพ่น" },
+    { word: "SQUAD",  meaning: "หน่วย / กลุ่ม" },
+    { word: "STACK",  meaning: "กอง / สแต็ก" },
+    { word: "STAFF",  meaning: "พนักงาน" },
+    { word: "STAGE",  meaning: "เวที / ขั้นตอน" },
+    { word: "STAIN",  meaning: "คราบ" },
+    { word: "STALE",  meaning: "เก่า / ไม่สด" },
+    { word: "STALL",  meaning: "ล็อก / แผงขาย" },
+    { word: "STAMP",  meaning: "แสตมป์ / ประทับ" },
+    { word: "STAND",  meaning: "ยืน" },
+    { word: "START",  meaning: "เริ่ม" },
+    { word: "STATE",  meaning: "รัฐ / สถานะ" },
+    { word: "STAVE",  meaning: "โน้ตดนตรี" },
+    { word: "STEAL",  meaning: "ขโมย" },
+    { word: "STEAM",  meaning: "ไอน้ำ" },
+    { word: "STEEL",  meaning: "เหล็กกล้า" },
+    { word: "STEEP",  meaning: "ชัน" },
+    { word: "STEER",  meaning: "บังคับทิศทาง" },
+    { word: "STERN",  meaning: "เข้มงวด" },
+    { word: "STICK",  meaning: "ไม้ / ติด" },
+    { word: "STILL",  meaning: "ยังคง / นิ่ง" },
+    { word: "STING",  meaning: "ต่อย / แสบ" },
+    { word: "STOCK",  meaning: "หุ้น / สต็อก" },
+    { word: "STOMP",  meaning: "เหยียบแรงๆ" },
+    { word: "STONE",  meaning: "หิน" },
+    { word: "STOOD",  meaning: "ยืน (อดีต)" },
+    { word: "STORE",  meaning: "ร้านค้า / เก็บ" },
+    { word: "STORM",  meaning: "พายุ" },
+    { word: "STORY",  meaning: "เรื่องราว" },
+    { word: "STOVE",  meaning: "เตา" },
+    { word: "STRAP",  meaning: "สายรัด" },
+    { word: "STRAW",  meaning: "ฟาง / หลอดดูด" },
+    { word: "STRIP",  meaning: "แถบ / ถอด" },
+    { word: "STUCK",  meaning: "ติดขัด" },
+    { word: "STUDY",  meaning: "เรียน" },
+    { word: "STUMP",  meaning: "ตอไม้" },
+    { word: "STYLE",  meaning: "สไตล์" },
+    { word: "SUGAR",  meaning: "น้ำตาล" },
+    { word: "SUITE",  meaning: "ห้องชุด" },
+    { word: "SUNNY",  meaning: "แดดจัด" },
+    { word: "SUPER",  meaning: "ยอดเยี่ยม" },
+    { word: "SURGE",  meaning: "พุ่งสูง" },
+    { word: "SWAMP",  meaning: "หนองน้ำ" },
+    { word: "SWEAR",  meaning: "สาบาน" },
+    { word: "SWEET",  meaning: "หวาน" },
+    { word: "SWEPT",  meaning: "กวาด (อดีต)" },
+    { word: "SWIFT",  meaning: "รวดเร็ว" },
+    { word: "SWORD",  meaning: "ดาบ" },
+    { word: "TABLE",  meaning: "โต๊ะ" },
+    { word: "TASTE",  meaning: "รสชาติ" },
+    { word: "TEACH",  meaning: "สอน" },
+    { word: "TEETH",  meaning: "ฟัน (พหูพจน์)" },
+    { word: "THANK",  meaning: "ขอบคุณ" },
+    { word: "THEME",  meaning: "ธีม" },
+    { word: "THESE",  meaning: "เหล่านี้" },
+    { word: "THICK",  meaning: "หนา" },
+    { word: "THINK",  meaning: "คิด" },
+    { word: "THORN",  meaning: "หนาม" },
+    { word: "THOSE",  meaning: "เหล่านั้น" },
+    { word: "THREE",  meaning: "สาม" },
+    { word: "THROW",  meaning: "โยน" },
+    { word: "THUMB",  meaning: "นิ้วหัวแม่มือ" },
+    { word: "TIGER",  meaning: "เสือ" },
+    { word: "TIGHT",  meaning: "แน่น" },
+    { word: "TIMER",  meaning: "ตัวจับเวลา" },
+    { word: "TIRED",  meaning: "เหนื่อย" },
+    { word: "TITLE",  meaning: "ชื่อเรื่อง" },
+    { word: "TODAY",  meaning: "วันนี้" },
+    { word: "TOKEN",  meaning: "โทเค็น" },
+    { word: "TORCH",  meaning: "คบเพลิง" },
+    { word: "TOTAL",  meaning: "ทั้งหมด" },
+    { word: "TOUCH",  meaning: "สัมผัส" },
+    { word: "TOUGH",  meaning: "แข็งแกร่ง" },
+    { word: "TOWEL",  meaning: "ผ้าเช็ดตัว" },
+    { word: "TOWER",  meaning: "หอคอย" },
+    { word: "TRACE",  meaning: "ติดตาม / รอย" },
+    { word: "TRACK",  meaning: "ลู่วิ่ง / ติดตาม" },
+    { word: "TRADE",  meaning: "การค้า" },
+    { word: "TRAIL",  meaning: "เส้นทาง" },
+    { word: "TRAIN",  meaning: "รถไฟ / ฝึก" },
+    { word: "TRAIT",  meaning: "ลักษณะ" },
+    { word: "TRAMP",  meaning: "คนพเนจร" },
+    { word: "TRASH",  meaning: "ขยะ" },
+    { word: "TREAD",  meaning: "ย่างเท้า" },
+    { word: "TREAT",  meaning: "รักษา / ของรางวัล" },
+    { word: "TREND",  meaning: "แนวโน้ม" },
+    { word: "TRIAL",  meaning: "การทดลอง / คดี" },
+    { word: "TRICK",  meaning: "กลอุบาย" },
+    { word: "TRIED",  meaning: "พยายาม (อดีต)" },
+    { word: "TROOP",  meaning: "กองทหาร" },
+    { word: "TROUT",  meaning: "ปลาเทราต์" },
+    { word: "TRUCK",  meaning: "รถบรรทุก" },
+    { word: "TRULY",  meaning: "อย่างจริงใจ" },
+    { word: "TRUMP",  meaning: "ไพ่ตาย" },
+    { word: "TRUNK",  meaning: "ลำต้น / หีบ" },
+    { word: "TRUTH",  meaning: "ความจริง" },
+    { word: "TULIP",  meaning: "ดอกทิวลิป" },
+    { word: "TUMOR",  meaning: "เนื้องอก" },
+    { word: "TUNER",  meaning: "เครื่องจูน" },
+    { word: "TUTOR",  meaning: "ติวเตอร์" },
+    { word: "TWICE",  meaning: "สองครั้ง" },
+    { word: "TWIST",  meaning: "บิด" },
+    { word: "ULTRA",  meaning: "สุดขีด" },
+    { word: "UNCLE",  meaning: "ลุง / อา" },
+    { word: "UNDER",  meaning: "ใต้" },
+    { word: "UNITE",  meaning: "รวมกัน" },
+    { word: "UNTIL",  meaning: "จนกระทั่ง" },
+    { word: "UPPER",  meaning: "บน / ด้านบน" },
+    { word: "UPSET",  meaning: "เสียใจ / คว่ำ" },
+    { word: "URBAN",  meaning: "เมือง" },
+    { word: "USAGE",  meaning: "การใช้งาน" },
+    { word: "USHER",  meaning: "พนักงานต้อนรับ" },
+    { word: "UTTER",  meaning: "พูดออกมา" },
+    { word: "VALID",  meaning: "ใช้ได้" },
+    { word: "VALUE",  meaning: "คุณค่า" },
+    { word: "VALVE",  meaning: "วาล์ว" },
+    { word: "VAPOR",  meaning: "ไอระเหย" },
+    { word: "VAULT",  meaning: "ห้องนิรภัย" },
+    { word: "VIGOR",  meaning: "ความกระฉับกระเฉง" },
+    { word: "VIRAL",  meaning: "ไวรัล" },
+    { word: "VISIT",  meaning: "เยี่ยมเยียน" },
+    { word: "VISOR",  meaning: "กระบังหน้า" },
+    { word: "VOCAL",  meaning: "เกี่ยวกับเสียง" },
+    { word: "VODKA",  meaning: "วอดก้า" },
+    { word: "VOICE",  meaning: "เสียง" },
+    { word: "VOTER",  meaning: "ผู้ลงคะแนน" },
+    { word: "VAGUE",  meaning: "คลุมเครือ" },
+    { word: "WAGON",  meaning: "เกวียน" },
+    { word: "WASTE",  meaning: "ทิ้ง / ของเสีย" },
+    { word: "WATCH",  meaning: "นาฬิกา / ดู" },
+    { word: "WATER",  meaning: "น้ำ" },
+    { word: "WEARY",  meaning: "เหนื่อยล้า" },
+    { word: "WEDGE",  meaning: "ลิ่ม" },
+    { word: "WEIGH",  meaning: "ชั่งน้ำหนัก" },
+    { word: "WEIRD",  meaning: "แปลก" },
+    { word: "WHALE",  meaning: "วาฬ" },
+    { word: "WHEAT",  meaning: "ข้าวสาลี" },
+    { word: "WHEEL",  meaning: "ล้อ" },
+    { word: "WHERE",  meaning: "ที่ไหน" },
+    { word: "WHICH",  meaning: "อันไหน" },
+    { word: "WHILE",  meaning: "ในขณะที่" },
+    { word: "WHITE",  meaning: "สีขาว" },
+    { word: "WHOLE",  meaning: "ทั้งหมด" },
+    { word: "WHOSE",  meaning: "ของใคร" },
+    { word: "WIDER",  meaning: "กว้างกว่า" },
+    { word: "WITCH",  meaning: "แม่มด" },
+    { word: "WOMAN",  meaning: "ผู้หญิง" },
+    { word: "WORLD",  meaning: "โลก" },
+    { word: "WORRY",  meaning: "กังวล" },
+    { word: "WORSE",  meaning: "แย่กว่า" },
+    { word: "WORST",  meaning: "แย่ที่สุด" },
+    { word: "WORTH",  meaning: "คุ้มค่า" },
+    { word: "WOULD",  meaning: "จะ (อนาคตในอดีต)" },
+    { word: "WOUND",  meaning: "บาดแผล" },
+    { word: "WRATH",  meaning: "ความโกรธ" },
+    { word: "WRITE",  meaning: "เขียน" },
+    { word: "WRONG",  meaning: "ผิด" },
+    { word: "XENON",  meaning: "ซีนอน (แก๊ส)" },
+    { word: "YACHT",  meaning: "เรือยอช์ต" },
+    { word: "YIELD",  meaning: "ให้ผล / ยอมแพ้" },
+    { word: "YOUNG",  meaning: "อายุน้อย" },
+    { word: "YOUTH",  meaning: "วัยเยาว์" },
+    { word: "ZEBRA",  meaning: "ม้าลาย" },
+    { word: "ZONAL",  meaning: "เป็นเขต" },
+].filter(w => w.word.length >= 3 && w.word.length <= 5 && w.meaning !== "");
+
+let selectedLen = 0;
+let history = [];
+let usedIndices = [];
+let filteredWords = [];
+
+function getFiltered() {
+    if (selectedLen === 0) return words;
+    return words.filter(w => w.word.length === selectedLen);
+}
+
+function randomWord() {
+    filteredWords = getFiltered();
+    if (filteredWords.length === 0) return;
+
+    if (usedIndices.length >= filteredWords.length) {
+        usedIndices = [];
+    }
+
+    let idx;
+    do { idx = Math.floor(Math.random() * filteredWords.length); }
+    while (usedIndices.includes(idx));
+
+    usedIndices.push(idx);
+    const item = filteredWords[idx];
+
+    const display = document.getElementById('wordDisplay');
+    display.classList.remove('animate');
+    void display.offsetWidth;
+    display.classList.add('animate');
+    display.textContent = item.word;
+
+    document.getElementById('letterCount').textContent = `${item.word.length} ตัวอักษร`;
+    document.getElementById('meaningBox').textContent = item.meaning || '—';
+
+    const used = usedIndices.length;
+    const total = filteredWords.length;
+    const pct = Math.round((used / total) * 100);
+    document.getElementById('counterText').textContent = '';
+    document.getElementById('progressBar').style.width = pct + '%';
+
+    history.unshift(item.word);
+    if (history.length > 10) history.pop();
+    renderHistory();
+}
+
+function renderHistory() {
+    const el = document.getElementById('historyList');
+    el.innerHTML = history.map((w, i) => `
+        <span style="background:rgba(255,255,255,${0.12 - i*0.01});border-radius:8px;padding:4px 12px;color:#ccc;font-size:0.85rem;">
+            ${w}
+        </span>
+    `).join('');
+}
+
+document.getElementById('btnRandom').addEventListener('click', randomWord);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedLen = parseInt(btn.dataset.len);
+        usedIndices = [];
+        history = [];
+        renderHistory();
+        randomWord();
+    });
+});
+</script>
+</body>
+</html>
