@@ -659,7 +659,12 @@ function getFiltered() {
     return words.filter(w => w.word.length === selectedLen);
 }
 
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let isSpinning = false;
+
 function randomWord() {
+    if (isSpinning) return;
+
     filteredWords = getFiltered();
     if (filteredWords.length === 0) return;
 
@@ -674,24 +679,74 @@ function randomWord() {
     usedIndices.push(idx);
     const item = filteredWords[idx];
 
+    spinEffect(item, () => {
+        const used = usedIndices.length;
+        const total = filteredWords.length;
+        const pct = Math.round((used / total) * 100);
+        document.getElementById('progressBar').style.width = pct + '%';
+        history.unshift(item.word);
+        if (history.length > 10) history.pop();
+        renderHistory();
+    });
+}
+
+function spinEffect(item, onDone) {
+    isSpinning = true;
     const display = document.getElementById('wordDisplay');
-    display.classList.remove('animate');
-    void display.offsetWidth;
-    display.classList.add('animate');
-    display.textContent = item.word;
+    const meaningBox = document.getElementById('meaningBox');
+    const letterCount = document.getElementById('letterCount');
+    const btn = document.getElementById('btnRandom');
+    const len = item.word.length;
 
-    document.getElementById('letterCount').textContent = `${item.word.length} ตัวอักษร`;
-    document.getElementById('meaningBox').textContent = item.meaning || '—';
+    btn.disabled = true;
+    meaningBox.textContent = '...';
+    letterCount.textContent = '—';
+    display.style.color = '#fff';
 
-    const used = usedIndices.length;
-    const total = filteredWords.length;
-    const pct = Math.round((used / total) * 100);
-    document.getElementById('counterText').textContent = '';
-    document.getElementById('progressBar').style.width = pct + '%';
+    const totalFrames = 22;
+    const slowStart = 14;
+    let frame = 0;
 
-    history.unshift(item.word);
-    if (history.length > 10) history.pop();
-    renderHistory();
+    function randStr(length) {
+        return Array.from({length}, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+    }
+
+    function revealWord(revealCount) {
+        return item.word.slice(0, revealCount) + randStr(len - revealCount);
+    }
+
+    function tick() {
+        frame++;
+
+        if (frame <= slowStart) {
+            display.textContent = randStr(len);
+            display.style.letterSpacing = '0.4rem';
+            display.style.color = `hsl(${Math.random()*60 + 180}, 100%, 75%)`;
+            const delay = 50 + frame * 8;
+            setTimeout(tick, delay);
+        } else {
+            const revealed = frame - slowStart;
+            display.textContent = revealWord(Math.min(revealed, len));
+            display.style.letterSpacing = '0.3rem';
+            display.style.color = '#fff';
+
+            if (frame < totalFrames) {
+                setTimeout(tick, 100 + revealed * 40);
+            } else {
+                display.textContent = item.word;
+                display.classList.remove('animate');
+                void display.offsetWidth;
+                display.classList.add('animate');
+                letterCount.textContent = `${len} ตัวอักษร`;
+                meaningBox.textContent = item.meaning || '—';
+                btn.disabled = false;
+                isSpinning = false;
+                onDone();
+            }
+        }
+    }
+
+    tick();
 }
 
 function renderHistory() {
